@@ -25,8 +25,8 @@ export default function AuthModal({ onClose }) {
 
     try {
       const url = tipoAuth === 'login' 
-        ? 'http://localhost:3000/api/usuarios/login' 
-        : 'http://localhost:3000/api/usuarios/registrar'; // 🔴 Corregí la ruta aquí
+        ? 'https://biblioteca-backend-yz1f.onrender.com/api/usuarios/login' 
+        : 'https://biblioteca-backend-yz1f.onrender.com/api/usuarios/registrar'; // 🔴 Corregí la ruta aquí
 
       // ✅ LÓGICA PARA ROL: Si es @admin.com = Rol 1, sino Rol 3
       let datosParaEnviar;

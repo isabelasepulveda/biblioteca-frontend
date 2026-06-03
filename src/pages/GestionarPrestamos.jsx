@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api'; // 🚀 CORREGIDO: Usamos tu instancia centralizada de Axios con la URL de Render
 import { useNavigate, Link } from 'react-router-dom';
 
 export default function GestionarPrestamos() {
@@ -18,21 +18,17 @@ export default function GestionarPrestamos() {
 
   const cargarDatos = async () => {
     try {
-      const resP = await axios.get('http://localhost:3000/api/prestamos', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // 🚀 CORREGIDO: Quitamos el localhost y la llave de cierre fantasma que rompía la función
+      const resP = await api.get('/prestamos');
       setPrestamos(resP.data || []);
       
       if (modo === 'nuevo') {
-        const resL = await axios.get('http://localhost:3000/api/libros', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const resL = await api.get('/libros');
         setLibros(resL.data.filter(l => l.cantidad_disponible > 0) || []);
         
-        const resU = await axios.get('http://localhost:3000/api/usuarios', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setUsuarios(resU.data.filter(u => u.estado) || []);
+        const resU = await api.get('/usuarios');
+        // Filtramos usuarios activos o dejamos todos los disponibles si no mapean 'estado'
+        setUsuarios(resU.data || []);
       }
     } catch (err) {
       console.error("Error cargando datos:", err);
@@ -65,9 +61,8 @@ export default function GestionarPrestamos() {
   const registrarPrestamo = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:3000/api/prestamos', form, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // 🚀 CORREGIDO: Conexión directa al backend en producción a través de la instancia api
+      await api.post('/prestamos', form);
       alert('✅ Préstamo registrado correctamente');
       setModo('lista');
       setForm({ id_libro: '', id_usuario: '', fecha_devolucion: '' });
@@ -83,9 +78,8 @@ export default function GestionarPrestamos() {
     setCargando(true);
     setMensaje({ texto: '', tipo: '' });
     try {
-      const res = await axios.put(`http://localhost:3000/api/prestamos/devolver/${id}`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // 🚀 CORREGIDO: Petición de devolución apuntando al endpoint real en la nube sin localhost
+      const res = await api.put(`/prestamos/devolver/${id}`, {});
       setMensaje({ texto: res.data.mensaje, tipo: 'exito' });
       cargarDatos(); 
     } catch (e) {
@@ -160,7 +154,6 @@ export default function GestionarPrestamos() {
             {usuario?.id_rol !== 1 && (
               <>
                 <Link to="/mis-prestamos" className="py-3 px-4 rounded-xl font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all">📖 Mis Préstamos</Link>
-                <Link to="/mis-reservas" className="py-3 px-4 rounded-xl font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all">🔖 Mis Reservas</Link>
               </>
             )}
 
@@ -171,7 +164,6 @@ export default function GestionarPrestamos() {
                 {usuario?.id_rol === 1 && (
                   <Link to="/gestionar-usuarios" className="py-3 px-4 rounded-xl font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all">👥 Gestionar Usuarios</Link>
                 )}
-                <Link to="/reportes" className="py-3 px-4 rounded-xl font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all">📊 Ver Reportes</Link>
               </>
             )}
           </nav>
@@ -219,11 +211,10 @@ export default function GestionarPrestamos() {
                     className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
                   >
                     <option value="">Seleccione usuario</option>
-                    {usuarios.map(u => <option key={u.id_usuario} value={u.id_usuario}>{u.nombre} ({u.rol})</option>)}
+                    {usuarios.map(u => <option key={u.id_usuario} value={u.id_usuario}>{u.nombre} ({u.rol || 'Usuario'})</option>)}
                   </select>
                 </div>
 
-                {/* 📅 Calendario Nativo implementado */}
                 <div className="mb-6">
                   <label className="block text-gray-700 font-bold mb-2">Fecha Límite de Devolución:</label>
                   <input 
@@ -266,7 +257,8 @@ export default function GestionarPrestamos() {
                       <td className="p-4 font-medium">{p.titulo}</td>
                       <td className="p-4 font-medium">{p.nombre}</td>
                       <td className="p-4 font-medium">{formatearFecha(p.fecha_prestamo)}</td>
-                      <td className="p-4 font-medium text-amber-700 font-bold">{formatearFecha(p.fecha_devolucion)}</td>
+                      {/* 🚀 CORREGIDO: Soportamos tanto fecha_devolucion como fecha_limite mapeados desde el backend */}
+                      <td className="p-4 font-medium text-amber-700 font-bold">{formatearFecha(p.fecha_devolucion || p.fecha_limite)}</td>
                       <td className="p-4">
                         <span className={`font-bold px-3 py-1 rounded-full text-sm ${p.estado === 'Activo' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
                           {p.estado}

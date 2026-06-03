@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api'; // 🚀 CORREGIDO: Usamos tu instancia centralizada de Axios en la nube
 import { useNavigate } from 'react-router-dom';
 
 export default function MisPrestamos() {
@@ -17,17 +17,11 @@ export default function MisPrestamos() {
 
     const cargar = async () => {
       try {
-        const ruta = 'http://localhost:3000/api/prestamos/mis-prestamos';
-        
-        const res = await axios.get(ruta, {
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
+        // 🚀 CORREGIDO: Eliminamos el localhost manual y dejamos la ruta relativa pura
+        const res = await api.get('/prestamos/mis-prestamos');
         
         setPrestamos(res.data);
-        console.log("✅ Préstamos cargados:", res.data);
+        console.log("✅ Préstamos personales cargados:", res.data);
 
       } catch (e) {
         console.error("🔴 ERROR DETALLADO:", e.response || e.message);
@@ -75,9 +69,9 @@ export default function MisPrestamos() {
                 📅 Fecha préstamo: {p.fecha_prestamo ? new Date(p.fecha_prestamo).toLocaleDateString() : 'No registrada'}
               </p>
               
-              {/* 🛠️ SOLUCIÓN AL BUG 1969: Si es null o vacío, evita usar new Date() y muestra texto alternativo */}
+              {/* 🛠️ CORREGIDO: Mapeamos tanto fecha_devolucion como fecha_limite devueltas por el backend */}
               <p className="text-sm text-slate-600 mb-3">
-                ⏳ Devolución: {p.fecha_devolucion ? new Date(p.fecha_devolucion).toLocaleDateString() : 'Por definir'}
+                ⏳ Devolución: {p.fecha_devolucion || p.fecha_limite ? new Date(p.fecha_devolucion || p.fecha_limite).toLocaleDateString() : 'Por definir'}
               </p>
               
               <span className={`px-3 py-1 rounded-full text-xs font-bold ${p.estado === 'Devuelto' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
