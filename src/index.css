@@ -1,0 +1,6 @@
+/* En Tailwind v4, toda la configuración va en CSS */
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #10b981; /* Emerald 500 */
+}
