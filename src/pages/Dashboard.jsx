@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import api from '../api'; // 🚀 CORREGIDO: Importamos tu instancia centralizada de Axios (Configurada con Render)
+import api from '../api'; // 🚀 Importamos tu instancia centralizada de Axios (Configurada con Render)
 import { useNavigate, Link } from 'react-router-dom';
 
 export default function Dashboard() {
@@ -35,7 +35,6 @@ export default function Dashboard() {
 
     const cargarDatos = async () => {
       try {
-        // 🚀 CORREGIDO: Quitamos 'axios' con la URL de localhost y usamos 'api' con la ruta relativa
         const res = await api.get('/dashboard');
         
         setDatos({
@@ -126,16 +125,14 @@ export default function Dashboard() {
                   📝 Gestionar Préstamos
                 </Link>
                 <Link to="/gestionar-libros" className="py-3 px-4 rounded-xl font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all">
-                  📖 Gestionar Libros
+                  📖 Cultivar/Gestionar Libros
                 </Link>
                 {esAdmin && (
                   <Link to="/gestionar-usuarios" className="py-3 px-4 rounded-xl font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all">
                     👥 Gestionar Usuarios
                   </Link>
                 )}
-                <Link to="/reportes" className="py-3 px-4 rounded-xl font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all">
-                  📊 Ver Reportes
-                </Link>
+                {/* 🚀 BORRADO: 'Ver Reportes' ha sido eliminado correctamente de aquí */}
               </>
             )}
           </nav>
