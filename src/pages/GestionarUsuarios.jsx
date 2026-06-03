@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api'; // 🚀 IMPORTANTE: Cambiado axios común por tu cliente de API centralizado
 import { useNavigate } from 'react-router-dom';
 
 export default function GestionarUsuarios() {
@@ -39,12 +39,8 @@ export default function GestionarUsuarios() {
   const cargarUsuarios = async () => {
     setCargando(true);
     try {
-      const res = await axios.get('http://localhost:3000/api/usuarios', {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      // 🚀 CORREGIDO: Ahora usa 'api' en vez de axios apuntando a localhost
+      const res = await api.get('/usuarios');
       setUsuarios(res.data);
       console.log("✅ Usuarios cargados:", res.data);
     } catch (e) {
@@ -84,14 +80,11 @@ export default function GestionarUsuarios() {
 
       let res;
       if (modoEdicion) {
-        res = await axios.put(`http://localhost:3000/api/usuarios/${idEdicion}`, datos, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        // 🚀 CORREGIDO: Endpoint dinámico con 'api' listo para producción
+        res = await api.put(`/usuarios/${idEdicion}`, datos);
       } else {
-        // 🌟 CORRECCIÓN DE ENDPOINT: Cambiado '/register' por '/registro' en español
-        res = await axios.post('http://localhost:3000/api/usuarios/registro', datos, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        // 🚀 CORREGIDO: Ruta relativa limpia sin localhost expuesto
+        res = await api.post('/usuarios/registro', datos);
       }
 
       setMensaje({ texto: res.data.mensaje || '✅ Operación exitosa', tipo: 'exito' });
@@ -125,13 +118,10 @@ export default function GestionarUsuarios() {
     if (!window.confirm(`¿Seguro que deseas ${estadoActual ? 'INACTIVAR' : 'ACTIVAR'} este usuario?`)) return;
     setCargando(true);
     try {
-      const res = await axios.put(
-        `http://localhost:3000/api/usuarios/estado/${id}`, 
-        { estado: !estadoActual }, 
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      // 🚀 CORREGIDO: Actualización de estados con el cliente api global
+      const res = await api.put(`/usuarios/estado/${id}`, { estado: !estadoActual });
       
-      if (res.data.success) {
+      if (res.data.success || res.status === 200) {
         setUsuarios(previos => 
           previos.map(usuario => 
             usuario.id_usuario === id ? { ...usuario, estado: !estadoActual } : usuario
@@ -290,7 +280,7 @@ export default function GestionarUsuarios() {
                   <th className="py-3 px-2">Estado</th>
                   <th className="py-3 px-2">Acciones</th>
                 </tr>
-              </thead>
+              </table>
               <tbody className="divide-y divide-slate-200 bg-slate-50">
                 {usuarios.length === 0 ? (
                   <tr>
@@ -337,7 +327,7 @@ export default function GestionarUsuarios() {
                   ))
                 )}
               </tbody>
-            </table>
+            </div>
           </div>
         </div>
       </div>
