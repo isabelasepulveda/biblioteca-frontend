@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api'; // 🚀 CORREGIDO: Importamos tu instancia centralizada de Axios (Configurada con Render)
 import { useNavigate, Link } from 'react-router-dom';
 
 export default function Dashboard() {
@@ -35,9 +35,8 @@ export default function Dashboard() {
 
     const cargarDatos = async () => {
       try {
-        const res = await axios.get('http://localhost:3000/api/dashboard', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        // 🚀 CORREGIDO: Quitamos 'axios' con la URL de localhost y usamos 'api' con la ruta relativa
+        const res = await api.get('/dashboard');
         
         setDatos({
           totalLibros: res.data.total_libros || 0,

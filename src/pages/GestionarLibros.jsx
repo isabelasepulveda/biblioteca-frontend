@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api'; // 🚀 CORREGIDO: Importamos tu instancia configurada con Render
 import { useNavigate } from 'react-router-dom';
 
 export default function GestionarLibros() {
@@ -39,9 +39,8 @@ export default function GestionarLibros() {
   const cargarLibros = async () => {
     setCargando(true);
     try {
-      const res = await axios.get('http://localhost:3000/api/libros', { 
-        headers: { Authorization: `Bearer ${token}` } 
-      });
+      // 🚀 CORREGIDO: Cambiado axios por api y removido el localhost
+      const res = await api.get('/libros');
       setLibros(res.data);
     } catch (e) {
       setMensaje({ texto: '⚠️ No se pudieron cargar los libros', tipo: 'error' });
@@ -92,18 +91,15 @@ export default function GestionarLibros() {
         cantidad_disponible: parseInt(formulario.cantidad_disponible)
       };
 
-      // 👀 HERRAMIENTA DE DIAGNÓSTICO: Ver los datos exactos que salen hacia el backend
       console.log("✈️ ENVIANDO DATOS AL BACKEND:", datos);
 
       let res;
       if (modoEdicion) {
-        res = await axios.put(`http://localhost:3000/api/libros/${idEdicion}`, datos, { 
-          headers: { Authorization: `Bearer ${token}` } 
-        });
+        // 🚀 CORREGIDO: Cambiado axios.put por api.put y removido localhost
+        res = await api.put(`/libros/${idEdicion}`, datos);
       } else {
-        res = await axios.post('http://localhost:3000/api/libros', datos, { 
-          headers: { Authorization: `Bearer ${token}` } 
-        });
+        // 🚀 CORREGIDO: Cambiado axios.post por api.post y removido localhost
+        res = await api.post('/libros', datos);
       }
       
       setMensaje({ texto: res.data.mensaje || '✅ Operación exitosa', tipo: 'exito' });
@@ -111,7 +107,6 @@ export default function GestionarLibros() {
       cargarLibros();
 
     } catch (e) {
-      // 👀 Muestra detalladamente en consola si la base de datos rebotó la consulta
       console.error("❌ ERROR COMPLETO DETECTADO:", e.response?.data || e.message);
       setMensaje({ 
         texto: `❌ ${e.response?.data?.mensaje || 'Error en el servidor'}`, 
@@ -142,9 +137,8 @@ export default function GestionarLibros() {
     if (!window.confirm('¿Eliminar este libro?')) return;
     setCargando(true);
     try {
-      const res = await axios.delete(`http://localhost:3000/api/libros/${id}`, { 
-        headers: { Authorization: `Bearer ${token}` } 
-      });
+      // 🚀 CORREGIDO: Cambiado axios.delete por api.delete y removido localhost
+      const res = await api.delete(`/libros/${id}`);
       setMensaje({ texto: res.data.mensaje || '✅ Libro eliminado', tipo: 'exito' });
       cargarLibros();
     } catch (e) {
