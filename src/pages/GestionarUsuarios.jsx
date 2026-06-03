@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import api from '../api'; // 🚀 IMPORTANTE: Cambiado axios común por tu cliente de API centralizado
+import api from '../api'; // 🚀 Cliente de API centralizado
 import { useNavigate } from 'react-router-dom';
 
 export default function GestionarUsuarios() {
@@ -39,7 +39,6 @@ export default function GestionarUsuarios() {
   const cargarUsuarios = async () => {
     setCargando(true);
     try {
-      // 🚀 CORREGIDO: Ahora usa 'api' en vez de axios apuntando a localhost
       const res = await api.get('/usuarios');
       setUsuarios(res.data);
       console.log("✅ Usuarios cargados:", res.data);
@@ -80,10 +79,8 @@ export default function GestionarUsuarios() {
 
       let res;
       if (modoEdicion) {
-        // 🚀 CORREGIDO: Endpoint dinámico con 'api' listo para producción
         res = await api.put(`/usuarios/${idEdicion}`, datos);
       } else {
-        // 🚀 CORREGIDO: Ruta relativa limpia sin localhost expuesto
         res = await api.post('/usuarios/registro', datos);
       }
 
@@ -118,7 +115,6 @@ export default function GestionarUsuarios() {
     if (!window.confirm(`¿Seguro que deseas ${estadoActual ? 'INACTIVAR' : 'ACTIVAR'} este usuario?`)) return;
     setCargando(true);
     try {
-      // 🚀 CORREGIDO: Actualización de estados con el cliente api global
       const res = await api.put(`/usuarios/estado/${id}`, { estado: !estadoActual });
       
       if (res.data.success || res.status === 200) {
@@ -280,7 +276,7 @@ export default function GestionarUsuarios() {
                   <th className="py-3 px-2">Estado</th>
                   <th className="py-3 px-2">Acciones</th>
                 </tr>
-              </table>
+              </thead> {/* 🚀 CORREGIDO: thead cerrado correctamente aquí */}
               <tbody className="divide-y divide-slate-200 bg-slate-50">
                 {usuarios.length === 0 ? (
                   <tr>
@@ -327,7 +323,7 @@ export default function GestionarUsuarios() {
                   ))
                 )}
               </tbody>
-            </div>
+            </table> {/* 🚀 CORREGIDO: table cerrado correctamente después del tbody */}
           </div>
         </div>
       </div>
