@@ -34,8 +34,8 @@ export default function Register() {
         telefono: formulario.telefono
       };
 
-      // Petición al endpoint correcto en español '/registro'
-      const res = await axios.post('http://localhost:3000/api/usuarios/registro', datosParaBackend);
+    // Cambia el localhost por tu URL real de Render
+const res = await axios.post('https://biblioteca-backend-yz1f.onrender.com/api/usuarios/registro', datosParaBackend);
       
       setMensaje({ 
         texto: res.data.mensaje || `✅ Cuenta creada con éxito.`, 
