@@ -125,7 +125,7 @@ export default function Dashboard() {
                   📝 Gestionar Préstamos
                 </Link>
                 <Link to="/gestionar-libros" className="py-3 px-4 rounded-xl font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all">
-                  📖 Cultivar/Gestionar Libros
+                  📖 Gestionar Libros
                 </Link>
                 {esAdmin && (
                   <Link to="/gestionar-usuarios" className="py-3 px-4 rounded-xl font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-all">
