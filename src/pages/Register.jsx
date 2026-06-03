@@ -24,8 +24,6 @@ export default function Register() {
     setMensaje({ texto: '', tipo: '' });
 
     try {
-      const esAdmin = formulario.correo.trim().toLowerCase().endsWith('@admin.com');
-      
       // Enviamos el objeto con las propiedades esperadas por el backend corregido
       const datosParaBackend = {
         nombre: formulario.nombre,
@@ -34,8 +32,8 @@ export default function Register() {
         telefono: formulario.telefono
       };
 
-    // Cambia el localhost por tu URL real de Render
-const res = await axios.post('https://biblioteca-backend-yz1f.onrender.com/api/usuarios/registro', datosParaBackend);
+      // Petición al backend en producción
+      const res = await axios.post('https://biblioteca-backend-yz1f.onrender.com/api/usuarios/registro', datosParaBackend);
       
       setMensaje({ 
         texto: res.data.mensaje || `✅ Cuenta creada con éxito.`, 
@@ -67,7 +65,6 @@ const res = await axios.post('https://biblioteca-backend-yz1f.onrender.com/api/u
             </div>
             <h1 className="text-2xl font-black text-slate-800 tracking-tight">Crear Cuenta Nueva</h1>
             <p className="text-slate-500 text-sm mt-1">Llena tus datos para registrarte</p>
-            <small className="text-amber-600 font-medium text-xs block mt-1">Usa <b>@admin.com</b> para ser Administrador</small>
           </div>
 
           {mensaje.texto && (
