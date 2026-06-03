@@ -9,6 +9,30 @@ export default function MisPrestamos() {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
 
+  // 🛠️ FUNCIÓN CORREGIDA: Evita el desfase de zona horaria aislando el texto de la fecha
+  const formatearFecha = (fechaRaw) => {
+    if (!fechaRaw) return 'No registrada';
+    
+    // Si la fecha viene como texto de la base de datos (Ej: "2026-06-03T00:00:00.000Z")
+    if (typeof fechaRaw === 'string') {
+      const partes = fechaRaw.split('T')[0].split('-');
+      if (partes.length === 3) {
+        // Retorna en formato puro DD/MM/AAAA sin conversiones de zona horaria
+        return `${parseInt(partes[2])}/${parseInt(partes[1])}/${partes[0]}`;
+      }
+    }
+
+    // Respaldo seguro usando métodos UTC por si es un objeto Date
+    const date = new Date(fechaRaw);
+    if (isNaN(date.getTime())) return 'S/F';
+    
+    const dia = date.getUTCDate();
+    const mes = date.getUTCMonth() + 1;
+    const anio = date.getUTCFullYear();
+    
+    return `${dia}/${mes}/${anio}`;
+  };
+
   useEffect(() => {
     if (!token) { 
       navigate('/login'); 
@@ -64,14 +88,14 @@ export default function MisPrestamos() {
             <div key={p.id_prestamo} className="bg-white rounded-2xl shadow-xl p-6 border-2 border-blue-100 hover:border-blue-300 transition-all">
               <h3 className="font-bold text-lg mb-2 text-slate-800">{p.titulo || 'Título desconocido'}</h3>
               
-              {/* 📅 Validación defensiva para la fecha de préstamo */}
+              {/* 📅 Corregido usando la nueva función de formateo */}
               <p className="text-sm text-slate-600 mb-1">
-                📅 Fecha préstamo: {p.fecha_prestamo ? new Date(p.fecha_prestamo).toLocaleDateString() : 'No registrada'}
+                📅 Fecha préstamo: {formatearFecha(p.fecha_prestamo)}
               </p>
               
-              {/* 🛠️ CORREGIDO: Mapeamos tanto fecha_devolucion como fecha_limite devueltas por el backend */}
+              {/* ⏳ Corregido usando la nueva función de formateo */}
               <p className="text-sm text-slate-600 mb-3">
-                ⏳ Devolución: {p.fecha_devolucion || p.fecha_limite ? new Date(p.fecha_devolucion || p.fecha_limite).toLocaleDateString() : 'Por definir'}
+                ⏳ Devolución: {formatearFecha(p.fecha_devolucion || p.fecha_limite)}
               </p>
               
               <span className={`px-3 py-1 rounded-full text-xs font-bold ${p.estado === 'Devuelto' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
