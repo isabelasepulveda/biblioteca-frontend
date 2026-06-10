@@ -1,251 +1,392 @@
 import { useState, useEffect } from 'react';
-import api from '../api'; 
-import { useNavigate } from 'react-router-dom';
+import api from '../api';
+import { useNavigate, Link } from 'react-router-dom';
 
 export default function GestionarLibros() {
   const [libros, setLibros] = useState([]);
-  const [categorias, setCategorias] = useState([]);
-  const [formulario, setFormulario] = useState({
-    titulo: '', autor: '', isbn: '', id_categoria: '', editorial: '', anio_publicacion: '', cantidad_total: '', cantidad_disponible: ''
+  
+  // ✅ AQUÍ DEFINES TUS CATEGORÍAS DIRECTAMENTE (edita o agrega las que necesites)
+  const categorias = [
+    { id: 1, nombre: 'Ficción' },
+    { id: 2, nombre: 'Ciencia y Tecnología' },
+    { id: 3, nombre: 'Historia' },
+    { id: 4, nombre: 'Literatura' },
+    { id: 5, nombre: 'Infantil' },
+    { id: 6, nombre: 'Biografía' },
+    { id: 7, nombre: 'Arte y Cultura' },
+    { id: 8, nombre: 'Educación' }
+  ];
+
+  const [form, setForm] = useState({
+    titulo: '',
+    autor: '',
+    isbn: '',
+    id_categoria: '',
+    editorial: '',
+    anio_publicacion: '',
+    cantidad_total: '',
+    cantidad_disponible: ''
   });
+  const [modo, setModo] = useState('lista');
+  const [editandoId, setEditandoId] = useState(null);
+  const [cargando, setCargando] = useState(true);
   const [mensaje, setMensaje] = useState({ texto: '', tipo: '' });
-  const [modoEdicion, setModoEdicion] = useState(false);
-  const [idEdicion, setIdEdicion] = useState(null);
-  const [cargando, setCargando] = useState(false);
+
+  // 🔍 BUSCADOR DE CATEGORÍAS
+  const [buscarCategoria, setBuscarCategoria] = useState('');
+  const [mostrarListaCategorias, setMostrarListaCategorias] = useState(false);
+
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
 
-  useEffect(() => {
-    const datosUsuario = localStorage.getItem('usuario');
-    if (!token || !datosUsuario) { navigate('/login'); return; }
+  const cargarDatos = async () => {
     try {
-      const usuario = JSON.parse(datosUsuario);
-      if (usuario.id_rol !== 1 && usuario.id_rol !== 2) {
-        setMensaje({ texto: '❌ Acceso solo para Administradores o Bibliotecarios', tipo: 'error' });
-        setTimeout(() => navigate('/dashboard'), 2000);
-        return;
-      }
-      cargarLibros();
-      cargarCategorias();
-    } catch (e) { navigate('/login'); }
+      const resL = await api.get('/libros');
+      setLibros(resL.data || []);
+    } catch (err) {
+      console.error("Error cargando datos:", err);
+      setMensaje({ texto: '❌ Error al cargar datos', tipo: 'error' });
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!token) {
+      navigate('/');
+      return;
+    }
+    cargarDatos();
   }, [token, navigate]);
 
-  const cargarLibros = async () => {
-    setCargando(true);
-    try {
-      const res = await api.get('/libros');
-      setLibros(res.data);
-    } catch (e) {
-      setMensaje({ texto: '⚠️ No se pudieron cargar los libros', tipo: 'error' });
-    } finally { 
-      setCargando(false); 
-      setTimeout(() => setMensaje({texto:'',tipo:''}), 3000); 
-    }
-  };
-
-  // ✅ FUNCIÓN DEFINITIVA: SOLO LA RUTA QUE SÍ EXISTE
-  const cargarCategorias = async () => {
-    try {
-      // ✅ RUTA EXACTA: /api/libros/categorias
-      const res = await api.get('/libros/categorias');
-      setCategorias(res.data || []);
-      console.log("✅ CATEGORÍAS CARGADAS:", res.data);
-    } catch (e) {
-      console.error("❌ ERROR 404 - NO EXISTE LA RUTA:", e);
-      setMensaje({ texto: '⚠️ No se pudieron cargar las categorías', tipo: 'error' });
-    }
-  };
+  // 🔍 FILTRAR CATEGORÍAS (desde la lista fija del código)
+  const categoriasFiltradas = categorias.filter(cat =>
+    cat.nombre.toLowerCase().includes(buscarCategoria.toLowerCase())
+  );
 
   const handleChange = (e) => {
-    const {name, value} = e.target;
-    setFormulario(prev => ({...prev, [name]: value}));
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: value });
   };
 
-  const guardarLibro = async (e) => {
-    e.preventDefault(); 
-    setCargando(true);
-
-    if (!formulario.titulo || !formulario.autor || !formulario.isbn || !formulario.cantidad_total || !formulario.cantidad_disponible || !formulario.id_categoria) {
-      setMensaje({ texto: '❌ Completa todos los campos obligatorios', tipo: 'error' });
-      setCargando(false); return;
-    }
-
+  const registrarOActualizar = async (e) => {
+    e.preventDefault();
     try {
-      const datos = {
-        titulo: formulario.titulo.trim(),
-        autor: formulario.autor.trim(),
-        isbn: formulario.isbn.trim(),
-        id_categoria: parseInt(formulario.id_categoria),
-        editorial: formulario.editorial?.trim() || null,
-        anio_publicacion: formulario.anio_publicacion ? parseInt(formulario.anio_publicacion) : null,
-        cantidad_total: parseInt(formulario.cantidad_total),
-        cantidad_disponible: parseInt(formulario.cantidad_disponible)
-      };
-
-      let res;
-      if (modoEdicion) {
-        res = await api.put(`/libros/${idEdicion}`, datos);
+      if (editandoId) {
+        await api.put(`/libros/${editandoId}`, form);
+        setMensaje({ texto: '✅ Libro actualizado correctamente', tipo: 'exito' });
       } else {
-        res = await api.post('/libros', datos);
+        await api.post('/libros', form);
+        setMensaje({ texto: '✅ Libro registrado correctamente', tipo: 'exito' });
       }
-      
-      setMensaje({ texto: res.data.mensaje || '✅ Operación exitosa', tipo: 'exito' });
-      reiniciarFormulario(); 
-      cargarLibros();
-
-    } catch (e) {
-      setMensaje({ texto: `❌ ${e.response?.data?.mensaje || 'Error en el servidor'}`, tipo: 'error' });
-    } finally { setCargando(false); }
+      setModo('lista');
+      setEditandoId(null);
+      setForm({ titulo: '', autor: '', isbn: '', id_categoria: '', editorial: '', anio_publicacion: '', cantidad_total: '', cantidad_disponible: '' });
+      setBuscarCategoria('');
+      cargarDatos();
+    } catch (err) {
+      console.error(err);
+      setMensaje({ texto: `❌ ${err.response?.data?.mensaje || 'Error al guardar'}`, tipo: 'error' });
+    }
   };
 
   const editarLibro = (libro) => {
-    setFormulario({
-      titulo: libro.titulo ?? '', autor: libro.autor ?? '', isbn: libro.isbn ?? '', id_categoria: libro.id_categoria ?? '',
-      editorial: libro.editorial ?? '', anio_publicacion: libro.anio_publicacion ?? '', cantidad_total: libro.cantidad_total ?? '', cantidad_disponible: libro.cantidad_disponible ?? ''
+    setForm({
+      titulo: libro.titulo,
+      autor: libro.autor,
+      isbn: libro.isbn,
+      id_categoria: libro.id_categoria,
+      editorial: libro.editorial || '',
+      anio_publicacion: libro.anio_publicacion || '',
+      cantidad_total: libro.cantidad_total,
+      cantidad_disponible: libro.cantidad_disponible
     });
-    setModoEdicion(true);
-    setIdEdicion(libro.id_libro);
-    window.scrollTo({top:0, behavior:'smooth'});
+    // Buscamos el nombre de la categoría para mostrarla al editar
+    const catNombre = categorias.find(c => c.id === parseInt(libro.id_categoria))?.nombre || '';
+    setBuscarCategoria(catNombre);
+    setEditandoId(libro.id_libro);
+    setModo('nuevo');
+    setMensaje({ texto: '', tipo: '' });
   };
 
   const eliminarLibro = async (id) => {
     if (!window.confirm('¿Eliminar este libro?')) return;
-    setCargando(true);
     try {
-      const res = await api.delete(`/libros/${id}`);
-      setMensaje({ texto: res.data.mensaje || '✅ Libro eliminado', tipo: 'exito' });
-      cargarLibros();
-    } catch (e) {
-      setMensaje({ texto: `❌ ${e.response?.data?.mensaje || 'No se pudo eliminar'}`, tipo: 'error' });
-    } finally { setCargando(false); }
+      await api.delete(`/libros/${id}`);
+      setMensaje({ texto: '✅ Libro eliminado', tipo: 'exito' });
+      cargarDatos();
+    } catch (err) {
+      setMensaje({ texto: `❌ ${err.response?.data?.mensaje || 'No se pudo eliminar'}`, tipo: 'error' });
+    }
   };
 
-  const reiniciarFormulario = () => {
-    setFormulario({ titulo:'', autor:'', isbn:'', id_categoria:'', editorial:'', anio_publicacion:'', cantidad_total:'', cantidad_disponible:'' });
-    setModoEdicion(false); setIdEdicion(null);
-  };
+  if (cargando) return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-xl font-bold text-blue-600">Cargando...</div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 p-4 md:p-6 flex justify-center">
-      <div className="w-full max-w-[900px]">
-        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 text-center md:text-left">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-400 flex items-center justify-center shadow-2xl">
-              <span className="text-white text-xl font-bold">📚</span>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-900 to-indigo-900">
+      <header className="bg-white/10 backdrop-blur-sm text-white p-6 shadow-lg border-b border-white/20">
+        <div className="container mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center text-2xl font-bold">📚</div>
             <div>
-              <h1 className="text-[clamp(1.8rem,3vw,2.4rem)] font-black text-white tracking-tight">Gestión de Libros</h1>
-              <p className="text-blue-200 text-base">Panel de administración</p>
+              <h1 className="text-3xl font-bold tracking-wider">Gestión de Libros</h1>
+              <p className="text-blue-200">Panel de administración</p>
             </div>
           </div>
-          <button onClick={() => navigate('/dashboard')} className="bg-white/10 backdrop-blur-md border border-white/20 text-white px-5 py-2.5 rounded-xl hover:bg-white/20 transition-all shadow-lg font-semibold text-sm">
+          <Link to="/dashboard" className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-md backdrop-blur-sm">
             ← Volver al Panel
+          </Link>
+        </div>
+      </header>
+
+      <div className="container mx-auto p-6">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-[28px] font-bold text-white">Biblioteca</h2>
+          <button 
+            onClick={() => {
+              setModo(modo === 'lista' ? 'nuevo' : 'lista');
+              setEditandoId(null);
+              setForm({ titulo: '', autor: '', isbn: '', id_categoria: '', editorial: '', anio_publicacion: '', cantidad_total: '', cantidad_disponible: '' });
+              setBuscarCategoria('');
+              setMensaje({ texto: '', tipo: '' });
+            }}
+            className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg"
+          >
+            {modo === 'lista' ? '+ Registrar Nuevo Libro' : '← Ver Lista'}
           </button>
         </div>
 
         {mensaje.texto && (
-          <div className={`mb-6 p-3 rounded-lg font-bold text-center shadow-2xl border-l-8 ${mensaje.tipo === 'exito' ? 'bg-emerald-500/20 border-emerald-400 text-emerald-200' : 'bg-rose-500/20 border-rose-400 text-rose-200'}`}>
+          <div className={`p-4 mb-6 rounded-xl font-bold shadow-lg backdrop-blur-sm ${mensaje.tipo === 'exito' ? 'bg-green-500/20 text-green-200 border border-green-400/30' : 'bg-red-500/20 text-red-200 border border-red-400/30'}`}>
             {mensaje.texto}
           </div>
         )}
 
-        {cargando && <div className="text-center text-white py-2 mb-3 bg-white/10 rounded-lg shadow-inner text-sm">⏳ Procesando...</div>}
+        {modo === 'nuevo' ? (
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-white/20 max-w-4xl mx-auto">
+            <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+              📝 {editandoId ? 'Editar Libro' : 'Registrar Nuevo Libro'}
+            </h3>
 
-        <div className="bg-white rounded-[1.5rem] shadow-2xl p-6 md:p-8 mb-8 relative border-8 border-white/20 w-full">
-          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500"></div>
-          
-          <h2 className="text-2xl font-extrabold text-slate-800 mb-6 flex items-center gap-3">
-            {modoEdicion ? '✏️ Modo Edición' : '📝 Registrar Nuevo Libro'}
-          </h2> 
+            <form onSubmit={registrarOActualizar} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Título */}
+              <div>
+                <label className="block text-white font-bold mb-2">Título *</label>
+                <input
+                  type="text"
+                  name="titulo"
+                  value={form.titulo}
+                  onChange={handleChange}
+                  required
+                  placeholder="Título del libro..."
+                  className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+                />
+              </div>
 
-          <form onSubmit={guardarLibro} className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="space-y-1.5">
-              <label className="text-slate-700 font-bold text-base">Título <span className="text-rose-500">*</span></label>
-              <input type="text" name="titulo" value={formulario.titulo} onChange={handleChange} required className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none transition-all shadow-inner" placeholder="Título del libro..." />
-            </div>
+              {/* Autor */}
+              <div>
+                <label className="block text-white font-bold mb-2">Autor *</label>
+                <input
+                  type="text"
+                  name="autor"
+                  value={form.autor}
+                  onChange={handleChange}
+                  required
+                  placeholder="Nombre del autor..."
+                  className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+                />
+              </div>
 
-            <div className="space-y-1.5">
-              <label className="text-slate-700 font-bold text-base">Autor <span className="text-rose-500">*</span></label>
-              <input type="text" name="autor" value={formulario.autor} onChange={handleChange} required className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none transition-all shadow-inner" placeholder="Nombre del autor..." />
-            </div>
+              {/* ISBN */}
+              <div>
+                <label className="block text-white font-bold mb-2">ISBN *</label>
+                <input
+                  type="text"
+                  name="isbn"
+                  value={form.isbn}
+                  onChange={handleChange}
+                  required
+                  placeholder="Código ISBN..."
+                  className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+                />
+              </div>
 
-            <div className="space-y-1.5">
-              <label className="text-slate-700 font-bold text-base">ISBN <span className="text-rose-500">*</span></label>
-              <input type="text" name="isbn" value={formulario.isbn} onChange={handleChange} required className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none transition-all shadow-inner" placeholder="Código ISBN..." />
-            </div>
+              {/* 🔽 CATEGORÍA CON BUSCADOR (DESDE CÓDIGO) */}
+              <div className="relative">
+                <label className="block text-white font-bold mb-2">Categoría *</label>
+                <input
+                  type="text"
+                  placeholder="🔍 Seleccione una categoría..."
+                  value={buscarCategoria}
+                  onChange={(e) => {
+                    setBuscarCategoria(e.target.value);
+                    setMostrarListaCategorias(true);
+                    if (form.id_categoria) setForm({...form, id_categoria: ''});
+                  }}
+                  onFocus={() => setMostrarListaCategorias(true)}
+                  required
+                  className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+                />
 
-            <div className="space-y-1.5">
-              <label className="text-slate-700 font-bold text-base">Categoría <span className="text-rose-500">*</span></label>
-              <select name="id_categoria" value={formulario.id_categoria} onChange={handleChange} required className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none transition-all shadow-inner font-semibold text-gray-700 cursor-pointer text-sm">
-                <option value="">Seleccione una categoría</option>
-                {categorias.map(cat => (<option key={cat.id_categoria} value={cat.id_categoria}>{cat.nombre}</option>))}
-              </select>
-            </div>
+                {mostrarListaCategorias && (
+                  <div 
+                    className="absolute z-20 w-full mt-1 bg-indigo-900/95 backdrop-blur-md border border-white/30 rounded-lg shadow-xl max-h-60 overflow-y-auto"
+                    onMouseLeave={() => setMostrarListaCategorias(false)}
+                  >
+                    <div
+                      onClick={() => {
+                        setForm({...form, id_categoria: ''});
+                        setBuscarCategoria('');
+                        setMostrarListaCategorias(false);
+                      }}
+                      className="p-2 text-blue-200 hover:bg-orange-500/30 cursor-pointer"
+                    >
+                      Seleccione una categoría
+                    </div>
 
-            <div className="space-y-1.5">
-              <label className="text-slate-700 font-bold text-base">Editorial</label>
-              <input type="text" name="editorial" value={formulario.editorial} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none transition-all shadow-inner" placeholder="Nombre de la editorial..." />
-            </div>
+                    {categoriasFiltradas.length === 0 ? (
+                      <div className="p-2 text-blue-200">No hay coincidencias</div>
+                    ) : (
+                      categoriasFiltradas.map(cat => (
+                        <div
+                          key={cat.id}
+                          onClick={() => {
+                            setForm({...form, id_categoria: cat.id});
+                            setBuscarCategoria(cat.nombre);
+                            setMostrarListaCategorias(false);
+                          }}
+                          className={`p-2 cursor-pointer ${form.id_categoria === cat.id ? 'bg-orange-500 text-white' : 'hover:bg-orange-500/30 text-white'}`}
+                        >
+                          {cat.nombre}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
 
-            <div className="space-y-1.5">
-              <label className="text-slate-700 font-bold text-base">Año</label>
-              <input type="number" name="anio_publicacion" value={formulario.anio_publicacion} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none transition-all shadow-inner" placeholder="Año de publicación..." />
-            </div>
+              {/* Editorial */}
+              <div>
+                <label className="block text-white font-bold mb-2">Editorial</label>
+                <input
+                  type="text"
+                  name="editorial"
+                  value={form.editorial}
+                  onChange={handleChange}
+                  placeholder="Nombre de la editorial..."
+                  className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+                />
+              </div>
 
-            <div className="space-y-1.5">
-              <label className="text-slate-700 font-bold text-base">Cantidad Total <span className="text-rose-500">*</span></label>
-              <input type="number" name="cantidad_total" value={formulario.cantidad_total} onChange={handleChange} required min="1" className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none transition-all shadow-inner" />
-            </div>
+              {/* Año */}
+              <div>
+                <label className="block text-white font-bold mb-2">Año</label>
+                <input
+                  type="number"
+                  name="anio_publicacion"
+                  value={form.anio_publicacion}
+                  onChange={handleChange}
+                  placeholder="Año de publicación..."
+                  className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+                />
+              </div>
 
-            <div className="space-y-1.5">
-              <label className="text-slate-700 font-bold text-base">Disponibles <span className="text-rose-500">*</span></label>
-              <input type="number" name="cantidad_disponible" value={formulario.cantidad_disponible} onChange={handleChange} required min="0" className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none transition-all shadow-inner" />
-            </div>
+              {/* Cantidad Total */}
+              <div>
+                <label className="block text-white font-bold mb-2">Cantidad Total *</label>
+                <input
+                  type="number"
+                  name="cantidad_total"
+                  value={form.cantidad_total}
+                  onChange={handleChange}
+                  required
+                  placeholder="Ej: 10"
+                  className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+                />
+              </div>
 
-            <div className="md:col-span-2 flex flex-wrap gap-3 mt-2 justify-center">
-              <button type="submit" disabled={cargando} className="flex-1 min-w-[180px] py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold text-lg rounded-xl shadow-lg transition-all">
-                {modoEdicion ? '✏️ ACTUALIZAR' : '💾 GUARDAR LIBRO'}
-              </button>
-              {modoEdicion && (<button type="button" onClick={reiniciarFormulario} className="py-3 px-6 bg-slate-500 text-white font-bold rounded-xl shadow-lg">❌ CANCELAR</button>)}
-            </div>
-          </form>
-        </div>
+              {/* Disponibles */}
+              <div>
+                <label className="block text-white font-bold mb-2">Disponibles *</label>
+                <input
+                  type="number"
+                  name="cantidad_disponible"
+                  value={form.cantidad_disponible}
+                  onChange={handleChange}
+                  required
+                  placeholder="Ej: 8"
+                  className="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+                />
+              </div>
 
-        <div className="bg-white rounded-[1.5rem] shadow-2xl p-6 border-8 border-white/20 w-full">
-          <h2 className="text-2xl font-extrabold text-slate-800 mb-6 text-center">📋 Inventario de Libros</h2>
-          <div className="overflow-x-auto rounded-xl">
-            <table className="w-full text-base">
+              {/* Botón */}
+              <div className="md:col-span-2 mt-4">
+                <button
+                  type="submit"
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg text-lg"
+                >
+                  {editandoId ? 'Actualizar Libro' : 'Guardar Libro'}
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : (
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl shadow-2xl p-6 border border-white/20 overflow-x-auto">
+            <table className="w-full border-collapse">
               <thead>
-                <tr className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white uppercase font-bold text-sm">
-                  <th className="py-3 px-2">Título</th>
-                  <th className="py-3 px-2">Autor</th>
-                  <th className="py-3 px-2">ISBN</th>
-                  <th className="py-3 px-2">Categoría</th>
-                  <th className="py-3 px-2">Total</th>
-                  <th className="py-3 px-2">Disp.</th>
-                  <th className="py-3 px-2">Acciones</th>
+                <tr className="bg-white/20 text-white">
+                  <th className="p-4 text-left font-bold rounded-tl-lg">Título</th>
+                  <th className="p-4 text-left font-bold">Autor</th>
+                  <th className="p-4 text-left font-bold">Categoría</th>
+                  <th className="p-4 text-left font-bold">ISBN</th>
+                  <th className="p-4 text-left font-bold">Total</th>
+                  <th className="p-4 text-left font-bold rounded-tr-lg">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 bg-slate-50 text-center">
+              <tbody>
                 {libros.length === 0 ? (
-                  <tr><td colSpan="7" className="py-12 text-slate-500 italic font-semibold">📭 No hay libros registrados</td></tr>
+                  <tr>
+                    <td colSpan="6" className="p-8 text-center text-blue-200 font-medium">
+                      No hay libros registrados
+                    </td>
+                  </tr>
                 ) : (
-                  libros.map((libro) => (
-                    <tr key={libro.id_libro} className="hover:bg-indigo-50 transition-colors">
-                      <td className="py-3 px-2 font-bold text-slate-800 text-sm">{libro.titulo}</td>
-                      <td className="py-3 px-2 text-sm">{libro.autor}</td>
-                      <td className="py-3 px-2 font-mono text-xs">{libro.isbn}</td>
-                      <td className="py-3 px-2"><span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold">{libro.nombre_categoria || 'General'}</span></td>
-                      <td className="py-3 px-2 font-semibold text-sm">{libro.cantidad_total}</td>
-                      <td className="py-3 px-2"><span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">{libro.cantidad_disponible}</span></td>
-                      <td className="py-3 px-2"><div className="flex justify-center gap-2"><button onClick={() => editarLibro(libro)} className="px-3 py-1.5 bg-amber-500 text-white font-bold rounded-lg text-xs hover:bg-amber-600 transition-all">✏️ Editar</button><button onClick={() => eliminarLibro(libro.id_libro)} className="px-3 py-1.5 bg-rose-500 text-white font-bold rounded-lg text-xs hover:bg-rose-600 transition-all">🗑️ Eliminar</button></div></td>
-                    </tr>
-                  ))
+                  libros.map(libro => {
+                    // Buscamos el nombre de la categoría para mostrarlo en la tabla
+                    const nombreCat = categorias.find(c => c.id === parseInt(libro.id_categoria))?.nombre || 'Desconocida';
+                    return (
+                      <tr key={libro.id_libro} className="border-b border-white/10 text-white hover:bg-white/5 transition-colors">
+                        <td className="p-4 font-medium">{libro.titulo}</td>
+                        <td className="p-4">{libro.autor}</td>
+                        <td className="p-4">{nombreCat}</td>
+                        <td className="p-4 text-blue-200">{libro.isbn}</td>
+                        <td className="p-4">{libro.cantidad_total}</td>
+                        <td className="p-4">
+                          <button
+                            onClick={() => editarLibro(libro)}
+                            className="bg-blue-500/80 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold mr-2 transition-all"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => eliminarLibro(libro.id_libro)}
+                            className="bg-red-500/80 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg font-bold transition-all"
+                          >
+                            Eliminar
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
