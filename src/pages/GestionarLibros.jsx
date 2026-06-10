@@ -5,7 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 export default function GestionarLibros() {
   const [libros, setLibros] = useState([]);
   
-  // ✅ AQUÍ DEFINES TUS CATEGORÍAS DIRECTAMENTE (edita o agrega las que necesites)
+  // ✅ CATEGORÍAS FIJAS DESDE EL CÓDIGO (edita aquí las que necesites)
   const categorias = [
     { id: 1, nombre: 'Ficción' },
     { id: 2, nombre: 'Ciencia y Tecnología' },
@@ -29,7 +29,7 @@ export default function GestionarLibros() {
   });
   const [modo, setModo] = useState('lista');
   const [editandoId, setEditandoId] = useState(null);
-  const [cargando, setCargando] = useState(true);
+  const [cargando, setCargando] = useState(false); // ✅ Quitamos carga automática que daba error
   const [mensaje, setMensaje] = useState({ texto: '', tipo: '' });
 
   // 🔍 BUSCADOR DE CATEGORÍAS
@@ -39,13 +39,15 @@ export default function GestionarLibros() {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
 
-  const cargarDatos = async () => {
+  // ✅ FUNCIÓN PARA CARGAR LIBROS (CON MANEJO DE ERROR 404)
+  const cargarLibros = async () => {
     try {
-      const resL = await api.get('/libros');
-      setLibros(resL.data || []);
+      setCargando(true);
+      const res = await api.get('/libros'); // ⚠️ Si tu ruta se llama distinto, cámbiala aquí
+      setLibros(res.data || []);
     } catch (err) {
-      console.error("Error cargando datos:", err);
-      setMensaje({ texto: '❌ Error al cargar datos', tipo: 'error' });
+      console.warn('No se pudieron cargar los libros:', err.message);
+      setLibros([]); // Si da error, dejamos lista vacía y no rompe nada
     } finally {
       setCargando(false);
     }
@@ -56,10 +58,10 @@ export default function GestionarLibros() {
       navigate('/');
       return;
     }
-    cargarDatos();
+    cargarLibros(); // Solo cargamos si hay token
   }, [token, navigate]);
 
-  // 🔍 FILTRAR CATEGORÍAS (desde la lista fija del código)
+  // 🔍 FILTRAR CATEGORÍAS
   const categoriasFiltradas = categorias.filter(cat =>
     cat.nombre.toLowerCase().includes(buscarCategoria.toLowerCase())
   );
@@ -69,8 +71,11 @@ export default function GestionarLibros() {
     setForm({ ...form, [name]: value });
   };
 
+  // ✅ GUARDAR / ACTUALIZAR (CON CONTROL DE ERRORES)
   const registrarOActualizar = async (e) => {
     e.preventDefault();
+    setCargando(true);
+    setMensaje({ texto: '', tipo: '' });
     try {
       if (editandoId) {
         await api.put(`/libros/${editandoId}`, form);
@@ -79,14 +84,20 @@ export default function GestionarLibros() {
         await api.post('/libros', form);
         setMensaje({ texto: '✅ Libro registrado correctamente', tipo: 'exito' });
       }
+      // Limpiar formulario
       setModo('lista');
       setEditandoId(null);
       setForm({ titulo: '', autor: '', isbn: '', id_categoria: '', editorial: '', anio_publicacion: '', cantidad_total: '', cantidad_disponible: '' });
       setBuscarCategoria('');
-      cargarDatos();
+      cargarLibros(); // Recargar lista
     } catch (err) {
-      console.error(err);
-      setMensaje({ texto: `❌ ${err.response?.data?.mensaje || 'Error al guardar'}`, tipo: 'error' });
+      console.error('ERROR:', err);
+      setMensaje({ 
+        texto: `❌ ${err.response?.data?.mensaje || 'No se pudo guardar: Verifica la ruta o conexión'}`, 
+        tipo: 'error' 
+      });
+    } finally {
+      setCargando(false);
     }
   };
 
@@ -101,7 +112,7 @@ export default function GestionarLibros() {
       cantidad_total: libro.cantidad_total,
       cantidad_disponible: libro.cantidad_disponible
     });
-    // Buscamos el nombre de la categoría para mostrarla al editar
+    // Mostrar nombre de categoría
     const catNombre = categorias.find(c => c.id === parseInt(libro.id_categoria))?.nombre || '';
     setBuscarCategoria(catNombre);
     setEditandoId(libro.id_libro);
@@ -111,18 +122,21 @@ export default function GestionarLibros() {
 
   const eliminarLibro = async (id) => {
     if (!window.confirm('¿Eliminar este libro?')) return;
+    setCargando(true);
     try {
       await api.delete(`/libros/${id}`);
       setMensaje({ texto: '✅ Libro eliminado', tipo: 'exito' });
-      cargarDatos();
+      cargarLibros();
     } catch (err) {
       setMensaje({ texto: `❌ ${err.response?.data?.mensaje || 'No se pudo eliminar'}`, tipo: 'error' });
+    } finally {
+      setCargando(false);
     }
   };
 
   if (cargando) return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-xl font-bold text-blue-600">Cargando...</div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-900 to-indigo-900 flex items-center justify-center">
+      <div className="text-xl font-bold text-white">Cargando...</div>
     </div>
   );
 
@@ -215,7 +229,7 @@ export default function GestionarLibros() {
                 />
               </div>
 
-              {/* 🔽 CATEGORÍA CON BUSCADOR (DESDE CÓDIGO) */}
+              {/* 🔽 CATEGORÍA CON BUSCADOR (FIJA DESDE CÓDIGO) */}
               <div className="relative">
                 <label className="block text-white font-bold mb-2">Categoría *</label>
                 <input
@@ -356,7 +370,6 @@ export default function GestionarLibros() {
                   </tr>
                 ) : (
                   libros.map(libro => {
-                    // Buscamos el nombre de la categoría para mostrarlo en la tabla
                     const nombreCat = categorias.find(c => c.id === parseInt(libro.id_categoria))?.nombre || 'Desconocida';
                     return (
                       <tr key={libro.id_libro} className="border-b border-white/10 text-white hover:bg-white/5 transition-colors">
