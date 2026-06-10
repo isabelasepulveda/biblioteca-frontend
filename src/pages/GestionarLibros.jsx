@@ -50,18 +50,26 @@ export default function GestionarLibros() {
     }
   };
 
-  // 📁 FUNCIÓN CORREGIDA AL 100% - RUTA QUE SÍ EXISTE
-  const cargarCategorias = async () => {
+ // 📁 FUNCIÓN ARREGLADA PARA EVITAR EL 404
+const cargarCategorias = async () => {
+  try {
+    // ✅ PRUEBA 1: RUTA CORTA (LA QUE DEBE FUNCIONAR)
+    const res = await api.get('/categorias');
+    setCategorias(res.data || []);
+    console.log("✅ CARGADO CON ÉXITO:", res.data);
+  } catch (e1) {
+    console.error("❌ /categorias FALLÓ, PROBANDO /libros/categorias...");
     try {
-      // ✅ RUTA CORRECTA: esta es la que está definida en tu libroRoutes.js
-      const res = await api.get('/libros/categorias');
-      setCategorias(res.data || []);
-      console.log("✅ Categorías cargadas:", res.data);
-    } catch (e) {
-      console.error("❌ Error al cargar:", e);
+      // ✅ PRUEBA 2: RUTA LARGA
+      const res2 = await api.get('/libros/categorias');
+      setCategorias(res2.data || []);
+      console.log("✅ CARGADO CON /libros/categorias:", res2.data);
+    } catch (e2) {
+      console.error("❌ NINGUNA RUTA FUNCIONÓ:", e2);
       setMensaje({ texto: '⚠️ No se pudieron cargar las categorías', tipo: 'error' });
     }
-  };
+  }
+};
 
   const handleChange = (e) => {
     const {name, value} = e.target;
