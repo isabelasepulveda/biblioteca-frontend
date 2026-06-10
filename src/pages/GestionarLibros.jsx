@@ -50,15 +50,15 @@ export default function GestionarLibros() {
     }
   };
 
-  // 📁 FUNCIÓN CORREGIDA: Ruta correcta /libros/categorias
+  // 📁 FUNCIÓN CORREGIDA AL 100% - RUTA QUE SÍ EXISTE
   const cargarCategorias = async () => {
     try {
-      // ✅ RUTA ARREGLADA AQUÍ: antes estaba solo /categorias
+      // ✅ RUTA CORRECTA: esta es la que está definida en tu libroRoutes.js
       const res = await api.get('/libros/categorias');
       setCategorias(res.data || []);
-      console.log("✅ Categorías cargadas correctamente:", res.data);
+      console.log("✅ Categorías cargadas:", res.data);
     } catch (e) {
-      console.error("❌ Error al cargar categorías:", e);
+      console.error("❌ Error al cargar:", e);
       setMensaje({ texto: '⚠️ No se pudieron cargar las categorías', tipo: 'error' });
     }
   };
