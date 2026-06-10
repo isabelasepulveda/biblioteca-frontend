@@ -13,6 +13,11 @@ export default function GestionarPrestamos() {
   const [usuario, setUsuario] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [mensaje, setMensaje] = useState({ texto: '', tipo: '' });
+
+  // 🔍 ESTADOS NUEVOS PARA EL BUSCADOR
+  const [buscarLibro, setBuscarLibro] = useState('');
+  const [mostrarListaLibros, setMostrarListaLibros] = useState(false);
+
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
 
@@ -66,6 +71,7 @@ export default function GestionarPrestamos() {
       alert('✅ Préstamo registrado correctamente');
       setModo('lista');
       setForm({ id_libro: '', id_usuario: '', fecha_devolucion: '' });
+      setBuscarLibro(''); // Limpiamos el buscador también
       cargarDatos();
     } catch (err) {
       console.error(err);
@@ -118,6 +124,11 @@ export default function GestionarPrestamos() {
     const anio = date.getUTCFullYear();
     return `${dia}/${mes}/${anio}`;
   };
+
+  // 🔍 FUNCIÓN PARA FILTRAR LIBROS
+  const librosFiltrados = libros.filter(libro =>
+    libro.titulo.toLowerCase().includes(buscarLibro.toLowerCase())
+  );
 
   if (cargando) {
     return (
@@ -189,17 +200,68 @@ export default function GestionarPrestamos() {
           {modo === 'nuevo' ? (
             <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
               <form onSubmit={registrarPrestamo} className="max-w-lg">
-                <div className="mb-4">
+                
+                {/* 🔽 CAMPO DE LIBRO CON BUSCADOR INTELIGENTE */}
+                <div className="mb-4 relative">
                   <label className="block text-gray-700 font-bold mb-2">Libro:</label>
-                  <select 
-                    value={form.id_libro} 
-                    onChange={(e) => setForm({...form, id_libro: e.target.value})} 
-                    required 
+                  
+                  {/* Input de búsqueda */}
+                  <input
+                    type="text"
+                    placeholder="🔍 Escribe para buscar..."
+                    value={buscarLibro}
+                    onChange={(e) => {
+                      setBuscarLibro(e.target.value);
+                      setMostrarListaLibros(true);
+                      // Si escribimos, limpiamos la selección anterior
+                      if (form.id_libro) setForm({...form, id_libro: ''});
+                    }}
+                    onFocus={() => setMostrarListaLibros(true)}
                     className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-                  >
-                    <option value="">Seleccione libro</option>
-                    {libros.map(l => <option key={l.id_libro} value={l.id_libro}>{l.titulo}</option>)}
-                  </select>
+                  />
+
+                  {/* Lista desplegable con resultados filtrados */}
+                  {mostrarListaLibros && (
+                    <div 
+                      className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                      onMouseLeave={() => setMostrarListaLibros(false)}
+                    >
+                      {/* Opción por defecto */}
+                      <div
+                        onClick={() => {
+                          setForm({...form, id_libro: ''});
+                          setBuscarLibro('');
+                          setMostrarListaLibros(false);
+                        }}
+                        className="p-2 text-gray-500 hover:bg-blue-50 cursor-pointer"
+                      >
+                        Seleccione libro
+                      </div>
+
+                      {/* Resultados filtrados */}
+                      {librosFiltrados.length === 0 ? (
+                        <div className="p-2 text-gray-500">No se encontraron libros</div>
+                      ) : (
+                        librosFiltrados.map(libro => (
+                          <div
+                            key={libro.id_libro}
+                            onClick={() => {
+                              setForm({...form, id_libro: libro.id_libro});
+                              setBuscarLibro(libro.titulo); // Pone el nombre en el input
+                              setMostrarListaLibros(false);
+                            }}
+                            className={`p-2 cursor-pointer ${
+                              form.id_libro === libro.id_libro 
+                                ? 'bg-blue-500 text-white' 
+                                : 'hover:bg-blue-50'
+                            }`}
+                          >
+                            {libro.titulo}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="mb-4">
