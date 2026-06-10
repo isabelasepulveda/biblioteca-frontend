@@ -4,12 +4,12 @@ import { useNavigate } from 'react-router-dom';
 
 export default function GestionarLibros() {
   const [libros, setLibros] = useState([]);
-  const [categorias, setCategorias] = useState([]); // 📁 NUEVO: Estado para cargar el listado de la base de datos
+  const [categorias, setCategorias] = useState([]); // 📁 Estado para cargar categorías
   const [formulario, setFormulario] = useState({
     titulo: '',
     autor: '',
     isbn: '',
-    id_categoria: '', // 🔄 CORREGIDO: Ahora guarda el ID numérico
+    id_categoria: '', // 🔄 Guarda el ID numérico
     editorial: '',
     anio_publicacion: '',
     cantidad_total: '',
@@ -33,7 +33,7 @@ export default function GestionarLibros() {
         return;
       }
       cargarLibros();
-      cargarCategorias(); // 📁 NUEVO: Invoca la carga al montar el componente
+      cargarCategorias(); // 📁 Carga las categorías al iniciar
     } catch (e) { navigate('/login'); }
   }, [token, navigate]);
 
@@ -50,13 +50,16 @@ export default function GestionarLibros() {
     }
   };
 
-  // 📁 NUEVO: Trae las 15 categorías desde el Backend
+  // 📁 FUNCIÓN CORREGIDA: Ruta correcta /libros/categorias
   const cargarCategorias = async () => {
     try {
-      const res = await api.get('/categorias');
+      // ✅ RUTA ARREGLADA AQUÍ: antes estaba solo /categorias
+      const res = await api.get('/libros/categorias');
       setCategorias(res.data || []);
+      console.log("✅ Categorías cargadas correctamente:", res.data);
     } catch (e) {
-      console.error("No se pudo obtener el catálogo de categorías");
+      console.error("❌ Error al cargar categorías:", e);
+      setMensaje({ texto: '⚠️ No se pudieron cargar las categorías', tipo: 'error' });
     }
   };
 
@@ -93,7 +96,7 @@ export default function GestionarLibros() {
         titulo: formulario.titulo.trim(),
         autor: formulario.autor.trim(),
         isbn: formulario.isbn.trim(),
-        id_categoria: parseInt(formulario.id_categoria), // 🔄 ID transformado a número válido
+        id_categoria: parseInt(formulario.id_categoria), // 🔄 Convertido a número
         editorial: formulario.editorial?.trim() || null,
         anio_publicacion: formulario.anio_publicacion ? parseInt(formulario.anio_publicacion) : null,
         cantidad_total: parseInt(formulario.cantidad_total),
@@ -126,7 +129,7 @@ export default function GestionarLibros() {
       titulo: libro.titulo ?? '',
       autor: libro.autor ?? '',
       isbn: libro.isbn ?? '',
-      id_categoria: libro.id_categoria ?? '', // Mapea el ID recibido de la base de datos
+      id_categoria: libro.id_categoria ?? '',
       editorial: libro.editorial ?? '',
       anio_publicacion: libro.anio_publicacion ?? '',
       cantidad_total: libro.cantidad_total ?? '',
@@ -229,7 +232,7 @@ export default function GestionarLibros() {
               />
             </div>
 
-            {/* 📁 SELECT DINÁMICO CORREGIDO PARA LAS 15 CATEGORÍAS */}
+            {/* 📁 SELECT DINÁMICO - AHORA SÍ CARGA LAS OPCIONES */}
             <div className="space-y-1.5">
               <label className="text-slate-700 font-bold text-base">Categoría <span className="text-rose-500">*</span></label>
               <select 
