@@ -4,16 +4,9 @@ import { useNavigate } from 'react-router-dom';
 
 export default function GestionarLibros() {
   const [libros, setLibros] = useState([]);
-  const [categorias, setCategorias] = useState([]); // 📁 Estado para cargar categorías
+  const [categorias, setCategorias] = useState([]);
   const [formulario, setFormulario] = useState({
-    titulo: '',
-    autor: '',
-    isbn: '',
-    id_categoria: '', // 🔄 Guarda el ID numérico
-    editorial: '',
-    anio_publicacion: '',
-    cantidad_total: '',
-    cantidad_disponible: ''
+    titulo: '', autor: '', isbn: '', id_categoria: '', editorial: '', anio_publicacion: '', cantidad_total: '', cantidad_disponible: ''
   });
   const [mensaje, setMensaje] = useState({ texto: '', tipo: '' });
   const [modoEdicion, setModoEdicion] = useState(false);
@@ -33,7 +26,7 @@ export default function GestionarLibros() {
         return;
       }
       cargarLibros();
-      cargarCategorias(); // 📁 Carga las categorías al iniciar
+      cargarCategorias();
     } catch (e) { navigate('/login'); }
   }, [token, navigate]);
 
@@ -50,26 +43,18 @@ export default function GestionarLibros() {
     }
   };
 
- // 📁 FUNCIÓN ARREGLADA PARA EVITAR EL 404
-const cargarCategorias = async () => {
-  try {
-    // ✅ PRUEBA 1: RUTA CORTA (LA QUE DEBE FUNCIONAR)
-    const res = await api.get('/categorias');
-    setCategorias(res.data || []);
-    console.log("✅ CARGADO CON ÉXITO:", res.data);
-  } catch (e1) {
-    console.error("❌ /categorias FALLÓ, PROBANDO /libros/categorias...");
+  // ✅ FUNCIÓN DEFINITIVA: SOLO LA RUTA QUE SÍ EXISTE
+  const cargarCategorias = async () => {
     try {
-      // ✅ PRUEBA 2: RUTA LARGA
-      const res2 = await api.get('/libros/categorias');
-      setCategorias(res2.data || []);
-      console.log("✅ CARGADO CON /libros/categorias:", res2.data);
-    } catch (e2) {
-      console.error("❌ NINGUNA RUTA FUNCIONÓ:", e2);
+      // ✅ RUTA EXACTA: /api/libros/categorias
+      const res = await api.get('/libros/categorias');
+      setCategorias(res.data || []);
+      console.log("✅ CATEGORÍAS CARGADAS:", res.data);
+    } catch (e) {
+      console.error("❌ ERROR 404 - NO EXISTE LA RUTA:", e);
       setMensaje({ texto: '⚠️ No se pudieron cargar las categorías', tipo: 'error' });
     }
-  }
-};
+  };
 
   const handleChange = (e) => {
     const {name, value} = e.target;
@@ -81,21 +66,7 @@ const cargarCategorias = async () => {
     setCargando(true);
 
     if (!formulario.titulo || !formulario.autor || !formulario.isbn || !formulario.cantidad_total || !formulario.cantidad_disponible || !formulario.id_categoria) {
-      setMensaje({ texto: '❌ Completa todos los campos obligatorios (incluyendo categoría)', tipo: 'error' });
-      setCargando(false); 
-      return;
-    }
-
-    if (Number(formulario.cantidad_total) < 1) {
-      setMensaje({ texto: '❌ Cantidad total debe ser mayor a 0', tipo: 'error' });
-      setCargando(false); return;
-    }
-    if (Number(formulario.cantidad_disponible) < 0) {
-      setMensaje({ texto: '❌ Disponibles no puede ser negativo', tipo: 'error' });
-      setCargando(false); return;
-    }
-    if (Number(formulario.cantidad_disponible) > Number(formulario.cantidad_total)) {
-      setMensaje({ texto: '❌ Disponibles no puede ser mayor al total', tipo: 'error' });
+      setMensaje({ texto: '❌ Completa todos los campos obligatorios', tipo: 'error' });
       setCargando(false); return;
     }
 
@@ -104,7 +75,7 @@ const cargarCategorias = async () => {
         titulo: formulario.titulo.trim(),
         autor: formulario.autor.trim(),
         isbn: formulario.isbn.trim(),
-        id_categoria: parseInt(formulario.id_categoria), // 🔄 Convertido a número
+        id_categoria: parseInt(formulario.id_categoria),
         editorial: formulario.editorial?.trim() || null,
         anio_publicacion: formulario.anio_publicacion ? parseInt(formulario.anio_publicacion) : null,
         cantidad_total: parseInt(formulario.cantidad_total),
@@ -123,25 +94,14 @@ const cargarCategorias = async () => {
       cargarLibros();
 
     } catch (e) {
-      setMensaje({ 
-        texto: `❌ ${e.response?.data?.mensaje || 'Error en el servidor'}`, 
-        tipo: 'error' 
-      });
-    } finally { 
-      setCargando(false); 
-    }
+      setMensaje({ texto: `❌ ${e.response?.data?.mensaje || 'Error en el servidor'}`, tipo: 'error' });
+    } finally { setCargando(false); }
   };
 
   const editarLibro = (libro) => {
     setFormulario({
-      titulo: libro.titulo ?? '',
-      autor: libro.autor ?? '',
-      isbn: libro.isbn ?? '',
-      id_categoria: libro.id_categoria ?? '',
-      editorial: libro.editorial ?? '',
-      anio_publicacion: libro.anio_publicacion ?? '',
-      cantidad_total: libro.cantidad_total ?? '',
-      cantidad_disponible: libro.cantidad_disponible ?? ''
+      titulo: libro.titulo ?? '', autor: libro.autor ?? '', isbn: libro.isbn ?? '', id_categoria: libro.id_categoria ?? '',
+      editorial: libro.editorial ?? '', anio_publicacion: libro.anio_publicacion ?? '', cantidad_total: libro.cantidad_total ?? '', cantidad_disponible: libro.cantidad_disponible ?? ''
     });
     setModoEdicion(true);
     setIdEdicion(libro.id_libro);
@@ -156,25 +116,18 @@ const cargarCategorias = async () => {
       setMensaje({ texto: res.data.mensaje || '✅ Libro eliminado', tipo: 'exito' });
       cargarLibros();
     } catch (e) {
-      setMensaje({ 
-        texto: `❌ ${e.response?.data?.mensaje || 'No se pudo eliminar'}`, 
-        tipo: 'error' 
-      });
-    } finally { 
-      setCargando(false); 
-    }
+      setMensaje({ texto: `❌ ${e.response?.data?.mensaje || 'No se pudo eliminar'}`, tipo: 'error' });
+    } finally { setCargando(false); }
   };
 
   const reiniciarFormulario = () => {
     setFormulario({ titulo:'', autor:'', isbn:'', id_categoria:'', editorial:'', anio_publicacion:'', cantidad_total:'', cantidad_disponible:'' });
-    setModoEdicion(false); 
-    setIdEdicion(null);
+    setModoEdicion(false); setIdEdicion(null);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 p-4 md:p-6 flex justify-center">
       <div className="w-full max-w-[900px]">
-        {/* Cabecera */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 text-center md:text-left">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-400 flex items-center justify-center shadow-2xl">
@@ -185,29 +138,19 @@ const cargarCategorias = async () => {
               <p className="text-blue-200 text-base">Panel de administración</p>
             </div>
           </div>
-          <button 
-            onClick={() => navigate('/dashboard')}
-            className="bg-white/10 backdrop-blur-md border border-white/20 text-white px-5 py-2.5 rounded-xl hover:bg-white/20 transition-all shadow-lg font-semibold text-sm"
-          >
+          <button onClick={() => navigate('/dashboard')} className="bg-white/10 backdrop-blur-md border border-white/20 text-white px-5 py-2.5 rounded-xl hover:bg-white/20 transition-all shadow-lg font-semibold text-sm">
             ← Volver al Panel
           </button>
         </div>
 
         {mensaje.texto && (
-          <div className={`mb-6 p-3 rounded-lg font-bold text-center shadow-2xl border-l-8 ${
-            mensaje.tipo === 'exito' ? 'bg-emerald-500/20 border-emerald-400 text-emerald-200' : 'bg-rose-500/20 border-rose-400 text-rose-200'
-          }`}>
+          <div className={`mb-6 p-3 rounded-lg font-bold text-center shadow-2xl border-l-8 ${mensaje.tipo === 'exito' ? 'bg-emerald-500/20 border-emerald-400 text-emerald-200' : 'bg-rose-500/20 border-rose-400 text-rose-200'}`}>
             {mensaje.texto}
           </div>
         )}
 
-        {cargando && (
-          <div className="text-center text-white py-2 mb-3 bg-white/10 rounded-lg shadow-inner text-sm">
-            ⏳ Procesando...
-          </div>
-        )}
+        {cargando && <div className="text-center text-white py-2 mb-3 bg-white/10 rounded-lg shadow-inner text-sm">⏳ Procesando...</div>}
 
-        {/* Formulario */}
         <div className="bg-white rounded-[1.5rem] shadow-2xl p-6 md:p-8 mb-8 relative border-8 border-white/20 w-full">
           <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500"></div>
           
@@ -218,95 +161,56 @@ const cargarCategorias = async () => {
           <form onSubmit={guardarLibro} className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="space-y-1.5">
               <label className="text-slate-700 font-bold text-base">Título <span className="text-rose-500">*</span></label>
-              <input type="text" name="titulo" value={formulario.titulo} onChange={handleChange} required
-                className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none transition-all shadow-inner"
-                placeholder="Título del libro..."
-              />
+              <input type="text" name="titulo" value={formulario.titulo} onChange={handleChange} required className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none transition-all shadow-inner" placeholder="Título del libro..." />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-slate-700 font-bold text-base">Autor <span className="text-rose-500">*</span></label>
-              <input type="text" name="autor" value={formulario.autor} onChange={handleChange} required
-                className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none transition-all shadow-inner"
-                placeholder="Nombre del autor..."
-              />
+              <input type="text" name="autor" value={formulario.autor} onChange={handleChange} required className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none transition-all shadow-inner" placeholder="Nombre del autor..." />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-slate-700 font-bold text-base">ISBN <span className="text-rose-500">*</span></label>
-              <input type="text" name="isbn" value={formulario.isbn} onChange={handleChange} required
-                className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none transition-all shadow-inner"
-                placeholder="Código ISBN..."
-              />
+              <input type="text" name="isbn" value={formulario.isbn} onChange={handleChange} required className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none transition-all shadow-inner" placeholder="Código ISBN..." />
             </div>
 
-            {/* 📁 SELECT DINÁMICO - AHORA SÍ CARGA LAS OPCIONES */}
             <div className="space-y-1.5">
               <label className="text-slate-700 font-bold text-base">Categoría <span className="text-rose-500">*</span></label>
-              <select 
-                name="id_categoria" 
-                value={formulario.id_categoria} 
-                onChange={handleChange} 
-                required
-                className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none transition-all shadow-inner font-semibold text-gray-700 cursor-pointer text-sm"
-              >
+              <select name="id_categoria" value={formulario.id_categoria} onChange={handleChange} required className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none transition-all shadow-inner font-semibold text-gray-700 cursor-pointer text-sm">
                 <option value="">Seleccione una categoría</option>
-                {categorias.map(cat => (
-                  <option key={cat.id_categoria} value={cat.id_categoria}>
-                    {cat.nombre}
-                  </option>
-                ))}
+                {categorias.map(cat => (<option key={cat.id_categoria} value={cat.id_categoria}>{cat.nombre}</option>))}
               </select>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-slate-700 font-bold text-base">Editorial</label>
-              <input type="text" name="editorial" value={formulario.editorial} onChange={handleChange}
-                className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none transition-all shadow-inner"
-                placeholder="Nombre de la editorial..."
-              />
+              <input type="text" name="editorial" value={formulario.editorial} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none transition-all shadow-inner" placeholder="Nombre de la editorial..." />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-slate-700 font-bold text-base">Año</label>
-              <input type="number" name="anio_publicacion" value={formulario.anio_publicacion} onChange={handleChange}
-                className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none transition-all shadow-inner"
-                placeholder="Año de publicación..."
-              />
+              <input type="number" name="anio_publicacion" value={formulario.anio_publicacion} onChange={handleChange} className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none transition-all shadow-inner" placeholder="Año de publicación..." />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-slate-700 font-bold text-base">Cantidad Total <span className="text-rose-500">*</span></label>
-              <input type="number" name="cantidad_total" value={formulario.cantidad_total} onChange={handleChange} required min="1"
-                className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none transition-all shadow-inner"
-              />
+              <input type="number" name="cantidad_total" value={formulario.cantidad_total} onChange={handleChange} required min="1" className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none transition-all shadow-inner" />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-slate-700 font-bold text-base">Disponibles <span className="text-rose-500">*</span></label>
-              <input type="number" name="cantidad_disponible" value={formulario.cantidad_disponible} onChange={handleChange} required min="0"
-                className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none transition-all shadow-inner"
-              />
+              <input type="number" name="cantidad_disponible" value={formulario.cantidad_disponible} onChange={handleChange} required min="0" className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none transition-all shadow-inner" />
             </div>
 
             <div className="md:col-span-2 flex flex-wrap gap-3 mt-2 justify-center">
-              <button type="submit" disabled={cargando}
-                className="flex-1 min-w-[180px] py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold text-lg rounded-xl shadow-lg transition-all"
-              >
+              <button type="submit" disabled={cargando} className="flex-1 min-w-[180px] py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold text-lg rounded-xl shadow-lg transition-all">
                 {modoEdicion ? '✏️ ACTUALIZAR' : '💾 GUARDAR LIBRO'}
               </button>
-              {modoEdicion && (
-                <button type="button" onClick={reiniciarFormulario}
-                  className="py-3 px-6 bg-slate-500 text-white font-bold rounded-xl shadow-lg"
-                >
-                  ❌ CANCELAR
-                </button>
-              )}
+              {modoEdicion && (<button type="button" onClick={reiniciarFormulario} className="py-3 px-6 bg-slate-500 text-white font-bold rounded-xl shadow-lg">❌ CANCELAR</button>)}
             </div>
           </form>
         </div>
 
-        {/* Tabla de Inventario */}
         <div className="bg-white rounded-[1.5rem] shadow-2xl p-6 border-8 border-white/20 w-full">
           <h2 className="text-2xl font-extrabold text-slate-800 mb-6 text-center">📋 Inventario de Libros</h2>
           <div className="overflow-x-auto rounded-xl">
@@ -324,32 +228,17 @@ const cargarCategorias = async () => {
               </thead>
               <tbody className="divide-y divide-slate-200 bg-slate-50 text-center">
                 {libros.length === 0 ? (
-                  <tr>
-                    <td colSpan="7" className="py-12 text-slate-500 italic font-semibold">📭 No hay libros registrados</td>
-                  </tr>
+                  <tr><td colSpan="7" className="py-12 text-slate-500 italic font-semibold">📭 No hay libros registrados</td></tr>
                 ) : (
                   libros.map((libro) => (
                     <tr key={libro.id_libro} className="hover:bg-indigo-50 transition-colors">
                       <td className="py-3 px-2 font-bold text-slate-800 text-sm">{libro.titulo}</td>
                       <td className="py-3 px-2 text-sm">{libro.autor}</td>
                       <td className="py-3 px-2 font-mono text-xs">{libro.isbn}</td>
-                      <td className="py-3 px-2">
-                        <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold">
-                          {libro.nombre_categoria || 'General'}
-                        </span>
-                      </td>
+                      <td className="py-3 px-2"><span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold">{libro.nombre_categoria || 'General'}</span></td>
                       <td className="py-3 px-2 font-semibold text-sm">{libro.cantidad_total}</td>
-                      <td className="py-3 px-2">
-                        <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">
-                          {libro.cantidad_disponible}
-                        </span>
-                      </td>
-                      <td className="py-3 px-2">
-                        <div className="flex justify-center gap-2">
-                          <button onClick={() => editarLibro(libro)} className="px-3 py-1.5 bg-amber-500 text-white font-bold rounded-lg text-xs hover:bg-amber-600 transition-all">✏️ Editar</button>
-                          <button onClick={() => eliminarLibro(libro.id_libro)} className="px-3 py-1.5 bg-rose-500 text-white font-bold rounded-lg text-xs hover:bg-rose-600 transition-all">🗑️ Eliminar</button>
-                        </div>
-                      </td>
+                      <td className="py-3 px-2"><span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">{libro.cantidad_disponible}</span></td>
+                      <td className="py-3 px-2"><div className="flex justify-center gap-2"><button onClick={() => editarLibro(libro)} className="px-3 py-1.5 bg-amber-500 text-white font-bold rounded-lg text-xs hover:bg-amber-600 transition-all">✏️ Editar</button><button onClick={() => eliminarLibro(libro.id_libro)} className="px-3 py-1.5 bg-rose-500 text-white font-bold rounded-lg text-xs hover:bg-rose-600 transition-all">🗑️ Eliminar</button></div></td>
                     </tr>
                   ))
                 )}
